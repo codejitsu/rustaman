@@ -204,13 +204,9 @@ fn main() {
 
             match msg {
                 Some((path, description)) => {
-                    print!("{}", color::Fg(color::Green));
-                    print!("{}", path);
-                    print!("{}", color::Fg(color::Cyan));
-                    print!("{}", " -> ");
-                    print!("{}", color::Fg(color::Yellow));
-                    print!("{}", description);
-                    print!("{}", "\n");                    
+                    print!("{}{}", color::Fg(color::Green), path);
+                    print!("{}{}", color::Fg(color::Cyan), " -> ");
+                    print!("{}{}\n", color::Fg(color::Yellow), description);                 
                 }
 
                 None => continue
