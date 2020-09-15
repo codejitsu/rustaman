@@ -43,7 +43,11 @@ impl RepoStats {
 
 impl fmt::Display for RepoStats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "m: {}, n: {}, d: {}, r: {}, t: {}, i: {}", self.modified, self.new, self.deleted, self.renamed, self.typechanged, self.ignored)
+        if self.modified + self.new + self.deleted + self.renamed + self.typechanged + self.ignored == 0 {
+            write!(f, "{}{}", color::Fg(color::Green), " ✔ ")
+        } else {
+            write!(f, "m: {}, n: {}, d: {}, r: {}, t: {}, i: {}", self.modified, self.new, self.deleted, self.renamed, self.typechanged, self.ignored)
+        }
     }
 }
 
