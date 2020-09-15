@@ -1,9 +1,6 @@
 use walkdir::{DirEntry, WalkDir};
 use termion::color;
-use git2::Repository;
-use git2::StatusOptions;
-use git2::Error;
-use git2::ErrorCode;
+use git2::{Repository, StatusOptions, Error, ErrorCode};
 use std::fmt;
 
 pub struct RepoStats {
@@ -44,26 +41,26 @@ impl RepoStats {
 impl fmt::Display for RepoStats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.modified + self.new + self.deleted + self.renamed + self.typechanged + self.ignored == 0 {
-            write!(f, "{}{}", color::Fg(color::Green), " ✔ ");
+            write!(f, "{}{}", color::Fg(color::Green), " ✔ ")?;
         } 
         
         if self.modified > 0 {
-            write!(f, "{}{}{}", color::Fg(color::Blue), " ✹ ", self.modified);
+            write!(f, "{}{}{}", color::Fg(color::Blue), " ✹ ", self.modified)?;
         }
         
         if self.new > 0 {
-            write!(f, "{}{}{}", color::Fg(color::Green), " ✚ ", self.new);            
+            write!(f, "{}{}{}", color::Fg(color::Green), " ✚ ", self.new)?;            
         }
         
         if self.deleted > 0 {
-            write!(f, "{}{}{}", color::Fg(color::Red), " ✖ ", self.deleted);                        
+            write!(f, "{}{}{}", color::Fg(color::Red), " ✖ ", self.deleted)?;                        
         }
         
         if self.renamed > 0 {
-            write!(f, "{}{}{}", color::Fg(color::White), " ➜ ", self.renamed);                                    
+            write!(f, "{}{}{}", color::Fg(color::White), " ➜ ", self.renamed)?;                                    
         } 
         
-        write!(f, "{}", "")
+        Ok(())
     }
 }
 
@@ -200,17 +197,20 @@ fn main() {
 
         if f_name == ".git" {
             let msg = make_repo_description(&entry)
-                .map(|branch| (entry.path().parent().unwrap().display().to_string(), branch))
-                .unwrap_or((String::from(""), String::from("")));
+                .map(|repo_info| (entry.path().parent().unwrap().display().to_string(), repo_info));
 
-            if msg != (String::from(""), String::from("")) {    
-                print!("{}", color::Fg(color::Green));
-                print!("{}", msg.0);
-                print!("{}", color::Fg(color::Cyan));
-                print!("{}", " -> ");
-                print!("{}", color::Fg(color::Yellow));
-                print!("{}", msg.1);
-                print!("{}", "\n");
+            match msg {
+                Some((path, description)) => {
+                    print!("{}", color::Fg(color::Green));
+                    print!("{}", path);
+                    print!("{}", color::Fg(color::Cyan));
+                    print!("{}", " -> ");
+                    print!("{}", color::Fg(color::Yellow));
+                    print!("{}", description);
+                    print!("{}", "\n");                    
+                }
+
+                None => continue
             }
         }
     }
