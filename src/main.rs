@@ -2,6 +2,9 @@ use walkdir::{DirEntry, WalkDir};
 use termion::color;
 use git2::{Repository, StatusOptions, Error, ErrorCode};
 use std::fmt;
+use console::{style, Emoji};
+
+static SPARKLE: Emoji<'_, '_> = Emoji("✨ ", ":-)");
 
 pub struct RepoStats {
     modified:       u32,
@@ -214,4 +217,6 @@ fn main() {
             }
         }
     }
+
+    println!("{}{} Done!", color::Fg(color::Green), SPARKLE);
 }
