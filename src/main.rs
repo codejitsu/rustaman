@@ -8,6 +8,7 @@ use console::Emoji;
 use structopt::StructOpt;
 use std::path::PathBuf;
 use std::env;
+use log::Level;
 
 static DONE: Emoji<'_, '_> = Emoji("😇 ", ":-)");
 
@@ -19,7 +20,7 @@ struct Opts {
 
     /// Start directory
     #[structopt(short, long, default_value = ".")]
-    start_dir: PathBuf
+    root: PathBuf
 }
 
 pub struct RepoStats {
@@ -83,14 +84,14 @@ impl fmt::Display for RepoStats {
     }
 }
 
-fn make_repo_description(entry: &DirEntry) -> Option<String> {
+fn make_repo_description(entry: &DirEntry) -> Result<String, String> {
     let repo = match Repository::open(entry.path()) {
         Ok(r) => r,
-        Err(_e) => return Some(format!("failed to open: {}", entry.path().display()))
+        Err(_e) => return Ok(format!("failed to open: {}", entry.path().display()))
     }; 
 
     if repo.is_bare() {
-        return Some(String::from("cannot report status on bare repository"));
+        return Ok(String::from("cannot report status on bare repository"));
     } else {
         let mut opts = StatusOptions::new();
 
@@ -98,17 +99,17 @@ fn make_repo_description(entry: &DirEntry) -> Option<String> {
 
         let statuses = match repo.statuses(Some(&mut opts)) {
             Ok(st) => st,
-            Err(e) => return Some(format!("failed to fetch status: {}", e))
+            Err(e) => return Ok(format!("failed to fetch status: {}", e))
         };
 
         let branch = match get_branch(&repo) {
-            Ok(b) => Some(b),
-            Err(_e) => None
+            Ok(name) => name,
+            Err(e) => return Err(e.to_string())
         };
 
         let repo_stats = get_stats(&statuses);
 
-        return branch.map(|b| format!("{} {}", b, repo_stats));
+        return Ok(format!("{} {}", branch, repo_stats));
     }
 }
 
@@ -208,6 +209,8 @@ fn get_stats(statuses: &git2::Statuses) -> RepoStats {
 fn run(opts: &Opts) -> Result<(), String> {
     if env::var("RUST_LOG").is_err() && opts.debug {
         env::set_var("RUST_LOG", "debug")
+    } else {
+        env::set_var("RUST_LOG", "info")
     }
 
     env_logger::init();
@@ -216,7 +219,7 @@ fn run(opts: &Opts) -> Result<(), String> {
         debug!("Using command line parameters: {:?}", opts);
     }
 
-    for entry in WalkDir::new(".")
+    for entry in WalkDir::new(opts.root.to_str().unwrap_or("."))
             .follow_links(true)
             .into_iter()
             .filter_map(|e| e.ok()) {
@@ -227,18 +230,18 @@ fn run(opts: &Opts) -> Result<(), String> {
                 .map(|repo_info| (entry.path().parent().unwrap().display().to_string(), repo_info));
 
             match msg {
-                Some((path, description)) => {
+                Ok((path, description)) => {
                     print!("{}{}", color::Fg(color::Green), path);
                     print!("{}{}", color::Fg(color::Cyan), " -> ");
                     print!("{}{}\n", color::Fg(color::Yellow), description);                 
                 }
 
-                None => continue
+                Err(_e) => continue
             }
         }
     }
 
-    println!("{}{} Done!", color::Fg(color::White), DONE);
+    log!(Level::Info, "{}{} Done!", color::Fg(color::White), DONE);
 
     return Ok(());
 }
