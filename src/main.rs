@@ -107,7 +107,7 @@ fn make_repo_description(entry: &DirEntry) -> Result<String, String> {
             Err(e) => return Err(e.to_string())
         };
 
-        let repo_stats = get_stats(&statuses);
+        let repo_stats = get_stats(&statuses, &repo);
 
         return Ok(format!("{} {}", branch, repo_stats));
     }
@@ -126,7 +126,7 @@ fn get_branch(repo: &Repository) -> Result<String, Error> {
     Ok(format!("{}", head.unwrap_or("HEAD (no branch)")))
 }
 
-fn get_stats(statuses: &git2::Statuses) -> RepoStats {
+fn get_stats(statuses: &git2::Statuses, repo: &Repository) -> RepoStats {
     let mut repo_stats = RepoStats {
         modified:       0,
         new:            0,
@@ -203,7 +203,27 @@ fn get_stats(statuses: &git2::Statuses) -> RepoStats {
         repo_stats.add_ignored();
     }
 
+    let (ahead, behind) = is_ahead_behind_remote(repo);
+
+    println!("ahead = {} behind = {}", ahead, behind);
+
     return repo_stats;
+}
+
+/// Determine if the current HEAD is ahead/behind its remote. The tuple
+/// returned will be in the order ahead and then behind.
+///
+/// If the remote is not set or doesn't exist (like a detached HEAD),
+/// (false, false) will be returned.
+fn is_ahead_behind_remote(repo: &Repository) -> (bool, bool) {
+    let head = repo.revparse_single("HEAD").unwrap().id();
+    if let Some((upstream, _)) = repo.revparse_ext("@{u}").ok() {
+        return match repo.graph_ahead_behind(head, upstream.id()) {
+            Ok((commits_ahead, commits_behind)) => (commits_ahead > 0, commits_behind > 0),
+            Err(_) => (false, false),
+        };
+    }
+    (false, false)
 }
 
 fn run(opts: &Opts) -> Result<(), String> {
