@@ -29,7 +29,9 @@ pub struct RepoStats {
     deleted:        u32,
     renamed:        u32,
     typechanged:    u32,
-    ignored:        u32
+    ignored:        u32,
+    ahead:          bool,
+    behind:         bool
 }
 
 impl RepoStats {
@@ -56,6 +58,14 @@ impl RepoStats {
     fn add_ignored(&mut self) {
         self.ignored +=1;
     }        
+
+    fn set_ahead(&mut self) {
+        self.ahead = true;
+    }
+
+    fn set_behind(&mut self) {
+        self.behind = true;
+    }    
 }
 
 impl fmt::Display for RepoStats {
@@ -64,6 +74,14 @@ impl fmt::Display for RepoStats {
             write!(f, "{}{}", color::Fg(color::Green), " ✔ ")?;
         } 
         
+        if self.ahead {
+            write!(f, "{}{}", color::Fg(color::Magenta), " ↑ ")?;
+        }
+
+        if self.behind {
+            write!(f, "{}{}", color::Fg(color::Cyan), " ↓ ")?;
+        }
+
         if self.modified > 0 {
             write!(f, "{}{}{}", color::Fg(color::Blue), " ✹ ", self.modified)?;
         }
@@ -133,7 +151,9 @@ fn get_stats(statuses: &git2::Statuses, repo: &Repository) -> RepoStats {
         deleted:        0,
         renamed:        0,
         typechanged:    0,
-        ignored:        0
+        ignored:        0,
+        ahead:          false,
+        behind:         false
     };
 
     // Print index changes
@@ -205,7 +225,13 @@ fn get_stats(statuses: &git2::Statuses, repo: &Repository) -> RepoStats {
 
     let (ahead, behind) = is_ahead_behind_remote(repo);
 
-    println!("ahead = {} behind = {}", ahead, behind);
+    if ahead {
+        repo_stats.set_ahead();
+    }
+
+    if behind {
+        repo_stats.set_behind();
+    }
 
     return repo_stats;
 }
