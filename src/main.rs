@@ -3,8 +3,21 @@ use termion::color;
 use git2::{Repository, StatusOptions, Error, ErrorCode};
 use std::fmt;
 use console::Emoji;
+use structopt::StructOpt;
+use std::path::PathBuf;
 
 static DONE: Emoji<'_, '_> = Emoji("😇 ", ":-)");
+
+#[derive(Debug, StructOpt)]
+struct Opts {
+    /// Activate debug mode
+    #[structopt(short, long)]
+    debug: bool,
+
+    /// Start directory
+    #[structopt(short, long, default_value = ".")]
+    start_dir: PathBuf
+}
 
 pub struct RepoStats {
     modified:       u32,
@@ -76,6 +89,14 @@ fn make_repo_description(entry: &DirEntry) -> Option<String> {
     if repo.is_bare() {
         return Some(String::from("cannot report status on bare repository"));
     } else {
+        let head = repo.head().unwrap().target().unwrap();
+        let head = repo.find_commit(head).unwrap();
+        let head_id = head.id();
+        let head_parent_id = head.parent(0).unwrap().id();
+        let (ahead, behind) = repo.graph_ahead_behind(head_id, head_parent_id).unwrap();
+
+        println!("{} {}", ahead, behind);
+
         let mut opts = StatusOptions::new();
 
         opts.include_untracked(true).recurse_untracked_dirs(true);
@@ -191,6 +212,9 @@ fn get_stats(statuses: &git2::Statuses) -> RepoStats {
 
 fn main() {
     env_logger::init();
+
+    let opt = Opts::from_args();
+    println!("{:?}", opt);
 
     for entry in WalkDir::new(".")
             .follow_links(true)
