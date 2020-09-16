@@ -1,3 +1,5 @@
+#[macro_use] extern crate log;
+
 use walkdir::{DirEntry, WalkDir};
 use termion::color;
 use git2::{Repository, StatusOptions, Error, ErrorCode};
@@ -5,6 +7,7 @@ use std::fmt;
 use console::Emoji;
 use structopt::StructOpt;
 use std::path::PathBuf;
+use std::env;
 
 static DONE: Emoji<'_, '_> = Emoji("😇 ", ":-)");
 
@@ -89,14 +92,6 @@ fn make_repo_description(entry: &DirEntry) -> Option<String> {
     if repo.is_bare() {
         return Some(String::from("cannot report status on bare repository"));
     } else {
-        let head = repo.head().unwrap().target().unwrap();
-        let head = repo.find_commit(head).unwrap();
-        let head_id = head.id();
-        let head_parent_id = head.parent(0).unwrap().id();
-        let (ahead, behind) = repo.graph_ahead_behind(head_id, head_parent_id).unwrap();
-
-        println!("{} {}", ahead, behind);
-
         let mut opts = StatusOptions::new();
 
         opts.include_untracked(true).recurse_untracked_dirs(true);
@@ -210,11 +205,16 @@ fn get_stats(statuses: &git2::Statuses) -> RepoStats {
     return repo_stats;
 }
 
-fn main() {
-    env_logger::init();
+fn run(opts: &Opts) -> Result<(), String> {
+    if env::var("RUST_LOG").is_err() && opts.debug {
+        env::set_var("RUST_LOG", "debug")
+    }
 
-    let opt = Opts::from_args();
-    println!("{:?}", opt);
+    env_logger::init();
+    
+    if opts.debug {        
+        debug!("Using command line parameters: {:?}", opts);
+    }
 
     for entry in WalkDir::new(".")
             .follow_links(true)
@@ -239,4 +239,14 @@ fn main() {
     }
 
     println!("{}{} Done!", color::Fg(color::White), DONE);
+
+    return Ok(());
+}
+
+fn main() {
+    let opts = Opts::from_args();
+    match run(&opts) {
+        Ok(()) => {}
+        Err(e) => println!("error: {}", e),
+    }
 }
