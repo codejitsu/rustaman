@@ -261,15 +261,15 @@ fn run(opts: &Opts) -> Result<(), String> {
 
     env_logger::init();
     
-    if opts.debug {        
-        debug!("Using command line parameters: {:?}", opts);
-    }
+    debug!("Using command line parameters: {:?}", opts);
 
     for entry in WalkDir::new(opts.root.to_str().unwrap_or("."))
             .follow_links(true)
             .into_iter()
             .filter_map(|e| e.ok()) {
         let f_name = entry.file_name().to_string_lossy();
+
+        debug!("Processing path: {}", entry.path().display());
 
         if f_name == ".git" {
             let msg = make_repo_description(&entry)
