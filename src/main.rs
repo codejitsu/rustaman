@@ -20,7 +20,11 @@ struct Opts {
 
     /// Start directory
     #[structopt(short, long, default_value = ".")]
-    root: PathBuf
+    root: PathBuf,
+
+    /// branch names to ignore
+    #[structopt(short, long)]    
+    ignore_list: Vec<String>
 }
 
 pub struct RepoStats {
@@ -102,7 +106,7 @@ impl fmt::Display for RepoStats {
     }
 }
 
-fn make_repo_description(entry: &DirEntry) -> Result<String, String> {
+fn make_repo_description(entry: &DirEntry, opts: &Opts) -> Result<String, String> {
     let repo = match Repository::open(entry.path()) {
         Ok(r) => r,
         Err(_e) => return Ok(format!("failed to open: {}", entry.path().display()))
@@ -111,11 +115,11 @@ fn make_repo_description(entry: &DirEntry) -> Result<String, String> {
     if repo.is_bare() {
         return Ok(String::from("cannot report status on bare repository"));
     } else {
-        let mut opts = StatusOptions::new();
+        let mut status_opts = StatusOptions::new();
 
-        opts.include_untracked(true).recurse_untracked_dirs(true);
+        status_opts.include_untracked(true).recurse_untracked_dirs(true);
 
-        let statuses = match repo.statuses(Some(&mut opts)) {
+        let statuses = match repo.statuses(Some(&mut status_opts)) {
             Ok(st) => st,
             Err(e) => return Ok(format!("failed to fetch status: {}", e))
         };
@@ -127,7 +131,13 @@ fn make_repo_description(entry: &DirEntry) -> Result<String, String> {
 
         let repo_stats = get_stats(&statuses, &repo);
 
-        return Ok(format!("{} {}", branch, repo_stats));
+        let branch_info = if !opts.ignore_list.is_empty() && !opts.ignore_list.contains(&branch) {
+            format!("{}{}", color::Fg(color::Red), branch)
+        } else {
+            format!("{}{}", color::Fg(color::Yellow), branch)
+        };
+
+        return Ok(format!("{} {}", branch_info, repo_stats));
     }
 }
 
@@ -272,7 +282,7 @@ fn run(opts: &Opts) -> Result<(), String> {
         debug!("Processing path: {}", entry.path().display());
 
         if f_name == ".git" {
-            let msg = make_repo_description(&entry)
+            let msg = make_repo_description(&entry, &opts)
                 .map(|repo_info| (entry.path().parent().unwrap().display().to_string(), repo_info));
 
             match msg {
