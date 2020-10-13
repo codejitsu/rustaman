@@ -39,6 +39,19 @@ pub struct RepoStats {
 }
 
 impl RepoStats {
+    fn new() -> RepoStats {
+        return RepoStats {
+            modified:       0,
+            new:            0,
+            deleted:        0,
+            renamed:        0,
+            typechanged:    0,
+            ignored:        0,
+            ahead:          false,
+            behind:         false
+        };
+    }
+
     fn add_modified(&mut self) {
         self.modified +=1;
     }
@@ -155,16 +168,7 @@ fn get_branch(repo: &Repository) -> Result<String, Error> {
 }
 
 fn get_stats(statuses: &git2::Statuses, repo: &Repository) -> RepoStats {
-    let mut repo_stats = RepoStats {
-        modified:       0,
-        new:            0,
-        deleted:        0,
-        renamed:        0,
-        typechanged:    0,
-        ignored:        0,
-        ahead:          false,
-        behind:         false
-    };
+    let mut repo_stats = RepoStats::new();
 
     // Print index changes
     for entry in statuses
