@@ -252,7 +252,13 @@ fn get_stats(statuses: &git2::Statuses, repo: &Repository) -> RepoStats {
 /// If the remote is not set or doesn't exist (like a detached HEAD),
 /// (false, false) will be returned.
 fn is_ahead_behind_remote(repo: &Repository) -> (bool, bool) {
-    let head = repo.revparse_single("HEAD").unwrap().id();
+    let head_res = repo.revparse_single("HEAD");
+
+    let head = match head_res {
+        Ok(h) => h.id(),
+        Err(_) => return (false, false)
+    };
+
     if let Some((upstream, _)) = repo.revparse_ext("@{u}").ok() {
         return match repo.graph_ahead_behind(head, upstream.id()) {
             Ok((commits_ahead, commits_behind)) => (commits_ahead > 0, commits_behind > 0),
