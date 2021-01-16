@@ -9,6 +9,7 @@ use structopt::StructOpt;
 use std::path::PathBuf;
 use std::env;
 use log::Level;
+use std::time::Instant;
 
 static DONE: Emoji<'_, '_> = Emoji("😇 ", ":-)");
 
@@ -273,6 +274,8 @@ fn is_ahead_behind_remote(repo: &Repository) -> (bool, bool) {
 }
 
 fn run(opts: &Opts) -> Result<(), String> {
+    let start = Instant::now();
+
     if env::var("RUST_LOG").is_err() && opts.debug {
         env::set_var("RUST_LOG", "debug")
     } else {
@@ -307,7 +310,15 @@ fn run(opts: &Opts) -> Result<(), String> {
         }
     }
 
-    log!(Level::Info, "{}{} Done!", color::Fg(color::White), DONE);
+    let duration = start.elapsed();
+
+    let duration_str = if duration.as_secs() == 0 {
+        format!("{}ms", duration.as_millis())
+    } else {
+        format!("{}s", duration.as_secs())
+    };
+
+    log!(Level::Info, "{}{} Done! in {}", color::Fg(color::White), DONE, duration_str);
 
     return Ok(());
 }
