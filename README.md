@@ -7,7 +7,7 @@ The main usage of Rustaman is to list all module directories along with ```git``
 rustaman -i master 
 ```
 
-[Rustaman in action](https://github.com/codejitsu/rustaman/blob/master/docs/images/rustaman-01.png?raw=true)
+![Rustaman in action](https://github.com/codejitsu/rustaman/blob/master/docs/images/rustaman-01.png?raw=true | width=250)
 
 ## Icons
 
