@@ -3,7 +3,7 @@
 use walkdir::{DirEntry, WalkDir};
 use termion::color;
 use git2::{Repository, StatusOptions, Error, ErrorCode};
-use std::fmt;
+use std::{fmt, string};
 use console::Emoji;
 use structopt::StructOpt;
 use std::path::PathBuf;
@@ -286,15 +286,28 @@ fn run(opts: &Opts) -> Result<(), String> {
     
     debug!("Using command line parameters: {:?}", opts);
 
+    let mut current_git_dir: Option<String> = None;
+
     for entry in WalkDir::new(opts.root.to_str().unwrap_or("."))
             .follow_links(true)
             .into_iter()
             .filter_map(|e| e.ok()) {
         let f_name = entry.file_name().to_string_lossy();
 
+        match current_git_dir {
+            None => (),
+            Some(ref p) => {
+                if entry.path().display().to_string().starts_with(p) {
+                    continue;
+                }
+            }
+        }
+
         debug!("Processing path: {}", entry.path().display());
 
         if f_name == ".git" {
+            current_git_dir = Some(entry.path().display().to_string());
+
             let msg = make_repo_description(&entry, &opts)
                 .map(|repo_info| (entry.path().parent().unwrap().display().to_string(), repo_info));
 
@@ -307,6 +320,8 @@ fn run(opts: &Opts) -> Result<(), String> {
 
                 Err(_e) => continue
             }
+        } else {
+            current_git_dir = None;
         }
     }
 
