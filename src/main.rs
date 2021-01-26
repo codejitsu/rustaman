@@ -273,6 +273,13 @@ fn is_ahead_behind_remote(repo: &Repository) -> (bool, bool) {
     (false, false)
 }
 
+fn is_hidden(entry: &DirEntry) -> bool {
+    entry.file_name()
+    .to_str()
+    .map(|s| s.starts_with("."))
+    .unwrap_or(false)
+}
+
 fn run(opts: &Opts) -> Result<(), String> {
     let start = Instant::now();
 
@@ -289,7 +296,7 @@ fn run(opts: &Opts) -> Result<(), String> {
     for entry in WalkDir::new(opts.root.to_str().unwrap_or("."))
             .follow_links(true)
             .into_iter()
-            .filter_entry(|e| !e.path().is_file())
+            .filter_entry(|e| !e.path().is_file() && is_hidden(e))
             .filter_map(|e| e.ok()) {
         let f_name = entry.file_name().to_string_lossy();
 
