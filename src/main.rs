@@ -3,7 +3,7 @@
 use walkdir::{DirEntry, WalkDir};
 use termion::color;
 use git2::{Repository, StatusOptions, Error, ErrorCode};
-use std::{fmt, string};
+use std::fmt;
 use console::Emoji;
 use structopt::StructOpt;
 use std::path::PathBuf;
