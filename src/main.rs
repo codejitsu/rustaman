@@ -25,7 +25,11 @@ struct Opts {
 
     /// branch names to ignore
     #[structopt(short, long)]    
-    ignore_list: Vec<String>
+    ignore_list: Vec<String>,
+
+    /// Activate full depth search
+    #[structopt(short, long)]
+    full_depth: bool
 }
 
 pub struct RepoStats {
@@ -286,7 +290,15 @@ fn run(opts: &Opts) -> Result<(), String> {
     
     debug!("Using command line parameters: {:?}", opts);
 
-    for entry in WalkDir::new(opts.root.to_str().unwrap_or("."))
+    let mut walk = WalkDir::new(opts.root.to_str().unwrap_or("."));
+
+    walk = if !opts.full_depth {
+        walk.max_depth(3)
+    } else {
+        walk
+    };
+
+    for entry in walk
             .follow_links(true)
             .into_iter()
             .filter_entry(|e| !e.path().is_file())
